@@ -2,6 +2,7 @@
 # -*-encoding: utf8 -*-
 """
 beta 验证没问题
+原文地址：https://www.cnblogs.com/linga/p/11097793.html
 ## 主机和端口都是通的
 
 这种情况，就会正常连接，正常发送和返回，socket没有任何异常，不用管是否需要密码这一情况，这种情况只需要socket连接主机ip和port，就肯定能链接目标主机ip和端口。
