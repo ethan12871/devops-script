@@ -2,6 +2,7 @@
 # -*-encoding: utf8 -*-
 """
 脚本调用加密后的静态、动态token，调用应用号接口，推送消息
+参考：https://www.cnblogs.com/superhin/p/10338930.html
 """
 import requests
 import json
