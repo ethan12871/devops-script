@@ -40,7 +40,7 @@ def push_starling(content, information):
     }
     headers = {
         'Content-Type': "application/json",
-        'Authorization': get_token("static_token.txt"),
+        'Authorization': get_token(),
         'cache-control': "no-cache"
     }
 
@@ -49,7 +49,7 @@ def push_starling(content, information):
     # print(response.text)
 
 # 获取token
-def get_token(file_name):
+def get_token():
     static_token = cf.get("nas", "encrypted_token")
     # with open('./%s' % file_name, mode='r') as file_handle:
     #     static_token = file_handle.read()
