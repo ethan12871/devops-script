@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-"""
-本地docker 发包到阿里云ack的镜像仓库
-Usage:
-    python deploy all
-    python deploy web
+"""Usage:
+    -api表示发布后端，-web表示发布前端 ；java表示开发环境，product表示正式环境。test表示测试环境
+    python deployment.py -api java/product/test
+    python deployment.py -web java/product/test
 Options:
     -h --help     Show this screen.
+注意：
+    此脚本只作为短时间简单发布，存在诸多问题，java开发环境如有问题请手动部署，不能完全代替自动化发布系统，请搭建。
 """
 import os
 import sys
@@ -13,7 +14,9 @@ import subprocess
 import string
 import time
 import datetime
-
+import re
+# from deploy_java  import Java
+# from
 class Deploy_Docker:
     def main(self):
         argv = sys.argv
@@ -26,12 +29,13 @@ class Deploy_Docker:
             return
 
         if ('-web' in sys.argv):
-            version_time = datetime.datetime.now().__format__("%Y%d%m-%H%M%S")
+            version_time = datetime.datetime.now().__format__("%Y%m%d-%H%M%S")
             cmd_rm_conf = "rm -f  /root/web/nginx.conf "
             os.system(cmd_rm_conf)
-            name = version_time + "web"
+            # name = version_time + "web"  #这样拼接
             index = argv.index('-web') + 1
             app = argv[index]
+            name = version_time + app  # 这样拼接
             if app == "java":
                 cmd_rm = "docker rm -f  web "
                 os.system(cmd_rm)
@@ -46,15 +50,21 @@ class Deploy_Docker:
                 cmd_deploy = "docker run -d --name web -p 80:80 %s:latest" % name
                 os.system(cmd_deploy)
                 print("成功发布开发环境web前端")
-            if app == "product":
-                cmd_cp_nginx = "cp /root/web/nginx/nginx.conf.pro /root/web/nginx.conf "
-                os.system(cmd_cp_nginx)
+            if (app == "product") or (app == "test"):
+                if app == "product":
+                    cmd_cp_nginx = "cp /root/web/nginx/nginx.conf.pro /root/web/nginx.conf"
+                    os.system(cmd_cp_nginx)
+                else:
+                    cmd_cp_nginx = "cp /root/web/nginx/nginx.conf.tes /root/web/nginx.conf"
+                    os.system(cmd_cp_nginx)
+
                 cmd_build = "cd /root/web && docker build -t  %s  --no-cache ." % name
                 os.system(cmd_build)
                 res = subprocess.Popen("docker images | grep %s | awk '{print $1,$3}'" % version_time, shell=True, stdout=subprocess.PIPE)
                 res.wait()
                 result = res.stdout.read()
-                result = str(result, encoding="utf-8")
+                result = str(result)
+                # result = str(result, encoding="utf-8")
                 print("result是：" + result)
                 with open("web_image.txt", "w") as f:
                     f.write(result)
@@ -98,7 +108,9 @@ class Deploy_Docker:
                     cmd_cp = "cp %s /root/ " % res
                     os.system(cmd_cp)
                     file_name_list = os.path.splitext(file)  # 对文件分离成list 文件名和后缀
-                    file_name = file_name_list[0]  # 拿到文件名字 vrshow-order-service-v2.1.1.1
+                    file_name = file_name_list[0]  # 拿到文件名字 vrshow-order-service-v2.2.1.1
+                    # file_name ="vrshow-video-manager-service-v2.2.1.1"
+                    # file_name = re.sub(r'\-v[0-9].*', "", file_name)
                     print(file_name)
                     print("app名字：" + app)
 
@@ -109,11 +121,11 @@ class Deploy_Docker:
                         os.system(cmd_rmi)
                         cmd_build = "docker build -t  %s --no-cache . " % file_name
                         os.system(cmd_build)
-                    if app == "test":#test
+                    if (app == "product") or (app == "test"):
                         version_time = datetime.datetime.now().__format__("%Y%d%m-%H%M%S")
                         print(type(version_time))
                         print(version_time)
-                        name = version_time + file_name + "test"  #test
+                        name = version_time + file_name + app #pro生产
                         print (name)
                         # cmd_build = "docker build -t  %s"+"pro "+" %s  . " % version_time % file_name
                         cmd_build = "docker build -t  %s  --no-cache   . " % name
@@ -124,7 +136,8 @@ class Deploy_Docker:
                                                shell=True, stdout=subprocess.PIPE)
                         res.wait()
                         result = res.stdout.read()
-                        result = str(result, encoding="utf-8")
+                        # result = str(result, encoding="utf-8")
+                        result = str(result)
                         print("result是：" + result)
                         with open("image.txt", "w") as f:
                             f.write(result)
@@ -158,62 +171,71 @@ class Deploy_Docker:
                     os.system(cmd_rm)
 
                     if app == "java":
-                        print ("开始开发环境启动项目")
-                        if file_name == "vrshow-search-service-v2.1.1.1":
+                        print("开始开发环境启动项目")
+                        if file_name == "vrshow-search-service-v2.2.1.1":
                             search_run = "docker run --name %s  -it -p 8031:8031   -d  %s:latest" % (
                             file_name, file_name)
                             os.system(search_run)
-                        elif file_name == "vrshow-mq-service-v2.1.1.1":
+                        elif file_name == "vrshow-mq-service-v2.2.1.1":
                             mq_run = "docker run --name  %s  -it -p 8041:8041   -d   %s:latest" % (file_name, file_name)
                             os.system(mq_run)
-                        elif file_name == "vrshow-comment-service-v2.1.1.1":
+                        elif file_name == "vrshow-comment-service-v2.2.1.1":
                             comment_run = "docker run --name %s  -it -p 8028:8028   -d  %s:latest" % (
                             file_name, file_name)
                             os.system(comment_run)
-                        elif file_name == "vrshow-advertising-service-v2.1.1.1":
+                        elif file_name == "vrshow-advertising-service-v2.2.1.1":
                             advertising_run = "docker run --name  %s -it -p 8027:8027 -d %s:latest" % (
                             file_name, file_name)
                             os.system(advertising_run)
-                        elif file_name == "vrshow-user-service-v2.1.1.1":
+                        elif file_name == "vrshow-user-app-service-v2.2.1.1":
                             user_run = "docker run --name %s -it -p 8083:8001 -d %s:latest" % (file_name, file_name)
                             os.system(user_run)
-                        elif file_name == "vrshow-ota-service-v2.1.1.1":
+                        elif file_name == "vrshow-ota-service-v2.2.1.1":
                             ota_run = "docker run --name %s -it -p 8084:8023 -d %s:latest" % (file_name, file_name)
                             os.system(ota_run)
-                        elif file_name == "vrshow-video-service-v2.1.1.1":
+                        elif file_name == "vrshow-video-app-service-v2.2.1.1":
                             video_run = "docker run --name %s -it -p 8082:8020 -d %s:latest" % (file_name, file_name)
                             os.system(video_run)
-                        elif file_name == "vrshow-setting-service-v2.1.1.1":
+                        elif file_name == "vrshow-setting-service-v2.2.1.1":
                             setting_run = "docker run --name %s -it -p 8010:8026 -d %s:latest" % (file_name, file_name)
                             os.system(setting_run)
-                        elif file_name == "vrshow-auth-service-v2.1.1.1":
+                        elif file_name == "vrshow-auth-service-v2.2.1.1":
                             auth_run = "docker run --name %s -it -p 8085:8090 -d %s:latest" % (file_name, file_name)
                             os.system(auth_run)
-                        elif file_name == "vrshow-article-service-v2.1.1.1":
+                        elif file_name == "vrshow-article-service-v2.2.1.1":
                             article_run = "docker run --name %s -it -p 8086:8022 -d %s:latest" % (file_name, file_name)
                             os.system(article_run)
-                        elif file_name == "vrshow-app-service-v2.1.1.1":
+                        elif file_name == "vrshow-app-service-v2.2.1.1":
                             app_run = "docker run --name %s -it -p 8087:8021 -d %s:latest" % (file_name, file_name)
                             os.system(app_run)
-                        elif file_name == "vrshow-operation-user-service-v2.1.1.1":
+                        elif file_name == "vrshow-app-manager-service-v2.2.1.1":
+                            app_run = "docker run --name %s -it -p 8187:8021 -d %s:latest" % (file_name, file_name)
+                            os.system(app_run)
+                        elif file_name == "vrshow-muser-service-v2.2.1.1":
                             operation_user_run = "docker run --name %s -it -p 8088:8002 -d %s:latest" % (
-                                file_name, file_name)
+                            file_name, file_name)
                             os.system(operation_user_run)
-                        elif file_name == "vrshow-gateway-service-v2.1.1.1":
+                        elif file_name == "vrshow-gateway-service-v2.2.1.1":
                             gateway_run = "docker run --name %s -it -p 8081:8088 -d %s:latest" % (file_name, file_name)
                             os.system(gateway_run)
-                        elif file_name == "vrshow-order-service-v2.1.1.1":
+                        elif file_name == "vrshow-order-service-v2.2.1.1":
                             order_run = "docker run --name %s   -it -p  8024:8024 -d %s:latest" % (file_name, file_name)
                             os.system(order_run)
-                        elif file_name == "vrshow-payment-service-v2.1.1.1":
+                        elif file_name == "vrshow-payment-service-v2.2.1.1":
                             payment_run = "docker run --name %s -it -p 8025:8025 -d %s:latest" % (file_name, file_name)
                             os.system(payment_run)
-                        elif file_name == "vrshow-search-task-v2.1.1.1":
+                        elif file_name == "vrshow-search-task-v2.2.1.1":
                             task_run = "docker run --name %s -it -p 8030:8030 -d %s:latest" % (file_name, file_name)
+                            os.system(task_run)
+                        elif file_name == "vrshow-search-task-v2.2.1.1":
+                            task_run = "docker run --name %s -it -p 8030:8030 -d %s:latest" % (file_name, file_name)
+                            os.system(task_run)
+                        elif file_name == "vrshow-video-manager-service-v2.2.1.1":
+                            task_run = "docker run --name %s -it -p 8029:8029 -d %s:latest" % (file_name, file_name)
                             os.system(task_run)
                         else:
                             print("无此项目，请添加")
-                        time.sleep(5)
+                        time.sleep(3)
 
 
 if __name__ == "__main__":
