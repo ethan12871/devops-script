@@ -1,0 +1,59 @@
+#deploy
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tomcat-demo #改
+  namespace: app  #改
+spec:
+  selector:
+    matchLabels:
+      app: tomcat-demo  #
+  replicas: 1 #1个pod
+  template:
+    metadata:
+      labels:
+        app: tomcat-demo #
+    spec:
+      containers:
+      - name: tomcat-demo #
+        image: registry-vpc.cn-shenzhen.aliyuncs.com/vrshow_test/javatest:testweb1 #
+        ports:
+        - containerPort: 8080 #
+        resources:
+            limits:
+              cpu: 250m #
+              memory: 500Mi #
+            requests:
+              cpu: 250m #
+              memory: 500Mi #
+---
+#service
+apiVersion: v1
+kind: Service
+metadata:
+  name: tomcat-demo-svc #
+  namespace: app #
+spec:
+  ports:
+  - port: 10000 #
+    protocol: TCP
+    targetPort: 8080 #
+  selector:
+    app: tomcat-demo #
+  type: ClusterIP #
+---
+#ingress
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: tomcat-demo-ingress #
+  namespace: app #
+spec:
+  rules:
+  - host: tomcat1.mooc.com ##
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: tomcat-demo-svc  ##
+          servicePort: 10000 ##
